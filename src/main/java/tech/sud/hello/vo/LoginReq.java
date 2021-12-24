@@ -16,7 +16,11 @@ import lombok.NoArgsConstructor;
 @Data
 public class LoginReq {
     /**
-     * 用户ID
+     * 用户ID（必填参数）
      */
     String userId;
+
+    /**
+     * TODO：其他参数视接入方业务决定
+     */
 }
