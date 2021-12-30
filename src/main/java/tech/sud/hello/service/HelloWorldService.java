@@ -66,6 +66,12 @@ public class HelloWorldService {
         return baseResp;
     }
 
+    /**
+     * 更新长期令牌SSToken(根据当前的长期令牌SSToken更换新的SSToken)
+     *
+     * @param ssToken 长期令牌
+     * @return 长期令牌SSToken响应
+     */
     public BaseResp<UpdateSSTokenResp> updateSSToken(String ssToken) {
         BaseResp<UpdateSSTokenResp> baseResp = new BaseResp<>();
         SudUid sudUid = sudMGPAuth.getUidBySSToken(ssToken);
@@ -83,6 +89,12 @@ public class HelloWorldService {
         return baseResp;
     }
 
+    /**
+     * 获取用户信息
+     *
+     * @param ssToken 长期令牌SSToken
+     * @return 用户信息响应
+     */
     public BaseResp<GetUserInfoResp> getUserInfo(String ssToken) {
         BaseResp<GetUserInfoResp> baseResp = new BaseResp<>();
 
