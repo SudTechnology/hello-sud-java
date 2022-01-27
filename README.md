@@ -6,5 +6,5 @@
 [StartUp-Java.md](https://github.com/SudTechnology/sud-mgp-doc/blob/main/Server/StartUp-Java.md)
 
 
-##### 注意：
+# 注意：
 响应体中的字段命名格式为SNAKE_CASE，需配置spring.jackson.property-naming-strategy=SNAKE_CASE
