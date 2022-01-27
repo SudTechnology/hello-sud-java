@@ -20,12 +20,10 @@ public enum RetCodeEnum {
     REQUEST_FAILED(1, "失败");
 
     @Getter
-    @Setter
-    private String name;
+    private final String name;
 
     @Getter
-    @Setter
-    private int index;
+    private final int index;
 
     RetCodeEnum(int index, String name) {
         this.name = name;

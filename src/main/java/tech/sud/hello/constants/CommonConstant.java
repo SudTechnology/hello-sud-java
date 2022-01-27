@@ -8,13 +8,15 @@ package tech.sud.hello.constants;
 public class CommonConstant {
 
     /**
-     * TODO：AppId: 请使用申请的app-id
+     * AppId: 请使用申请的app-id
+     * 注意：请联系SUD申请
      */
-    public static final String APP_ID = "123123123123";
+    public static final String APP_ID = "1461564080052506636";
 
     /**
-     * TODO：AppSecret: 请使用申请的app-secret
+     * AppSecret: 请使用申请的app-secret
+     * 注意：请联系SUD申请
      */
-    public static final String APP_SECRET = "bzatsMfCIjIE7ny8bzatsMfCIjIE7ny8";
+    public static final String APP_SECRET = "xJL0HU9ailVSGInqPyNK3Ev3qNHReRbR";
 
 }
