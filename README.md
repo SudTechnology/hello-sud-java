@@ -7,4 +7,4 @@
 
 
 # 注意：
-响应体中的字段命名格式为SNAKE_CASE，需配置spring.jackson.property-naming-strategy=SNAKE_CASE
+响应体中的字段命名格式为SNAKE_CASE（字段名下划线分隔）
