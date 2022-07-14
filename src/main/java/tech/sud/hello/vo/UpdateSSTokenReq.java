@@ -1,5 +1,6 @@
 package tech.sud.hello.vo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,6 +21,7 @@ public class UpdateSSTokenReq {
     /**
      * 当前有效的长期令牌，字段名：ss_token
      */
+    @JsonProperty("ss_token")
     private String ssToken;
 
 }

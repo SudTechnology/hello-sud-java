@@ -1,5 +1,6 @@
 package tech.sud.hello.vo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,11 +20,13 @@ public class GetSSTokenResp {
     /**
      * 长期令牌，字段名:ss_token
      */
+    @JsonProperty("ss_token")
     private String ssToken;
 
     /**
      * 长期令牌SSToken的过期时间（毫秒时间戳），字段名:expire_date
      */
+    @JsonProperty("expire_date")
     private long expireDate;
 
 }

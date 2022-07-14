@@ -1,5 +1,6 @@
 package tech.sud.hello.vo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 /**
@@ -13,6 +14,7 @@ public class GetSSTokenReq {
     /**
      * 短期令牌，字段名：code
      */
+    @JsonProperty("code")
     private String code;
 }
 

@@ -1,5 +1,6 @@
 package tech.sud.hello.vo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,11 +20,13 @@ public class LoginResp {
     /**
      * 短期令牌，字段名：code
      */
+    @JsonProperty("code")
     private String code;
 
     /**
      * 短期令牌Code的过期时间（毫秒时间戳），字段名：expire_date
      */
+    @JsonProperty("expire_date")
     private long expireDate;
 }
 

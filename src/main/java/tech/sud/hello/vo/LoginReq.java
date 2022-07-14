@@ -1,5 +1,6 @@
 package tech.sud.hello.vo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -19,6 +20,7 @@ public class LoginReq {
     /**
      * 用户ID（必填参数），字段名：user_id
      */
+    @JsonProperty("user_id")
     String userId;
 
     /**

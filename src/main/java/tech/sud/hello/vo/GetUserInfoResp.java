@@ -1,5 +1,6 @@
 package tech.sud.hello.vo;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -20,21 +21,25 @@ public class GetUserInfoResp {
     /**
      * 用户ID，字段名：uid
      */
+    @JsonProperty("uid")
     private String uid;
 
     /**
      * 昵称，字段名：nick_name
      */
+    @JsonProperty("nick_name")
     private String nickName;
 
     /**
      * 头像地址（最优解为128*128），字段名：avatar_url
      */
+    @JsonProperty("avatar_url")
     private String avatarUrl;
 
     /**
      * 性别（男：male, 女：female），字段名：gender
      */
+    @JsonProperty("gender")
     private String gender;
 
 }
