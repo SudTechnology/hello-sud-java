@@ -24,19 +24,19 @@ public class HelloWorldService {
     private SudMGPAuth sudMGPAuth;
 
     /**
-     * 登录（GetCode）
+     * 生成Code（GetCode）
      *
      * @param userId 用户ID
-     * @return 登录响应
+     * @return 生成Code响应
      */
-    public BaseResp<LoginResp> login(String userId) {
-        BaseResp<LoginResp> baseResp = new BaseResp<>();
+    public BaseResp<GetCodeResp> getCode(String userId) {
+        BaseResp<GetCodeResp> baseResp = new BaseResp<>();
 
         // 生成短期令牌Code, 不传expireDuration参数则使用SDK中默认两小时过期
         SudCode sudCode = sudMGPAuth.getCode(userId);
 
         // 返回响应结果
-        baseResp.setData(LoginResp.builder()
+        baseResp.setData(GetCodeResp.builder()
                 .code(sudCode.getCode())
                 .expireDate(sudCode.getExpireDate())
                 .build());
@@ -62,6 +62,13 @@ public class HelloWorldService {
         baseResp.setData(GetSSTokenResp.builder()
                 .ssToken(sudSSToken.getToken())
                 .expireDate(sudSSToken.getExpireDate())
+                // 注意：新增了用户信息的返回
+                .userInfo(GetUserInfoResp.builder()
+                        .uid(sudUid.getUid())
+                        .nickName("HELLO-SUD")
+                        .gender("male")
+                        .avatarUrl("https://ATATAR-URL")
+                        .build())
                 .build());
         return baseResp;
     }

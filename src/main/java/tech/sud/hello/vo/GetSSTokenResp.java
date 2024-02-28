@@ -29,6 +29,12 @@ public class GetSSTokenResp {
     @JsonProperty("expire_date")
     private long expireDate;
 
+    /**
+     * 用户信息，字段名:user_info
+     */
+    @JsonProperty("user_info")
+    private GetUserInfoResp userInfo;
+
 }
 
 

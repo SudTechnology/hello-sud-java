@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Data
-public class LoginResp {
+public class GetCodeResp {
     /**
      * 短期令牌，字段名：code
      */

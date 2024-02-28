@@ -16,7 +16,7 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 @Data
-public class LoginReq {
+public class GetCodeReq {
     /**
      * 用户ID（必填参数），字段名：user_id
      */

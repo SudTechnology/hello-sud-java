@@ -3,7 +3,7 @@ package tech.sud.hello.controller;
 import tech.sud.hello.service.HelloWorldService;
 import tech.sud.hello.vo.GetSSTokenReq;
 import tech.sud.hello.vo.GetUserInfoReq;
-import tech.sud.hello.vo.LoginReq;
+import tech.sud.hello.vo.GetCodeReq;
 import tech.sud.hello.vo.UpdateSSTokenReq;
 import org.springframework.web.bind.annotation.*;
 
@@ -21,15 +21,15 @@ public class HelloWorldController {
     private HelloWorldService helloWorldService;
 
     /**
-     * 登录接口，获取针对当前用户(UID)的短期令牌Code
+     * 生成code，获取针对当前用户(UID)的短期令牌Code
      * 调用方：接入端APP
      *
      * @param reqParam
      * @return
      */
-    @PostMapping("/login")
-    public Object hello(@RequestBody() LoginReq reqParam) {
-        return helloWorldService.login(reqParam.getUserId());
+    @PostMapping("/get_code")
+        public Object getCode(@RequestBody() GetCodeReq reqParam) {
+        return helloWorldService.getCode(reqParam.getUserId());
     }
 
     /**
