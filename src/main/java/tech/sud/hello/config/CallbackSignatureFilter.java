@@ -9,18 +9,15 @@ import org.springframework.stereotype.Component;
 import org.springframework.util.StreamUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import tech.sud.auth.gip.auth.RequestSigner;
 import tech.sud.hello.service.AuthService;
 
 import java.io.BufferedReader;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStreamReader;
-import java.nio.charset.StandardCharsets;
-import java.security.GeneralSecurityException;
-import java.security.MessageDigest;
+import java.util.Collections;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import javax.servlet.FilterChain;
 import javax.servlet.ReadListener;
 import javax.servlet.ServletException;
@@ -37,18 +34,15 @@ import javax.servlet.http.HttpServletResponse;
 @Order(Ordered.HIGHEST_PRECEDENCE)
 public class CallbackSignatureFilter extends OncePerRequestFilter {
     private final boolean enabled;
-    private final String appId;
-    private final byte[] secret;
+    private final RequestSigner signer;
     private final ObjectMapper json;
 
     public CallbackSignatureFilter(
             @Value("${sud.verify-callback-signature:false}") boolean enabled,
-            @Value("${sud.app-id}") String appId,
-            @Value("${sud.app-secret}") String secret,
+            RequestSigner signer,
             ObjectMapper json) {
         this.enabled = enabled;
-        this.appId = appId;
-        this.secret = secret.getBytes(StandardCharsets.UTF_8);
+        this.signer = signer;
         this.json = json;
     }
 
@@ -86,40 +80,20 @@ public class CallbackSignatureFilter extends OncePerRequestFilter {
     }
 
     private boolean verify(HttpServletRequest request, byte[] body) {
-        String id = request.getHeader("Sud-AppId");
-        String timestamp = request.getHeader("Sud-Timestamp");
-        String nonce = request.getHeader("Sud-Nonce");
-        String signature = request.getHeader("Sud-Signature");
-        if (!appId.equals(id)
-                || missing(timestamp)
-                || missing(nonce)
-                || signature == null
-                || !signature.matches("[0-9a-f]{40}")) {
-            return false;
-        }
-        try {
-            Mac mac = Mac.getInstance("HmacSHA1");
-            mac.init(new SecretKeySpec(secret, "HmacSHA1"));
-            // All four lines, including the original body, end with a newline.
-            mac.update(
-                    (id + "\n" + timestamp + "\n" + nonce + "\n").getBytes(StandardCharsets.UTF_8));
-            mac.update(body);
-            byte[] digest = mac.doFinal(new byte[] {'\n'});
-            byte[] supplied = new byte[20];
-            for (int i = 0; i < supplied.length; i++) {
-                supplied[i] = (byte) Integer.parseInt(signature.substring(i * 2, i * 2 + 2), 16);
-            }
-            if (!MessageDigest.isEqual(digest, supplied)) {
+        // Reject ambiguous duplicate headers before passing values to the SDK.
+        for (String name :
+                new String[] {"Sud-AppId", "Sud-Timestamp", "Sud-Nonce", "Sud-Signature"}) {
+            if (Collections.list(request.getHeaders(name)).size() != 1) {
                 return false;
             }
-            return true;
-        } catch (GeneralSecurityException exception) {
-            throw new IllegalStateException("Callback signature calculation failed", exception);
         }
-    }
-
-    private boolean missing(String value) {
-        return value == null || value.trim().isEmpty();
+        // The SDK receives ORIGINAL bytes; no JSON conversion or normalization is allowed.
+        return signer.verifySignature(
+                request.getHeader("Sud-AppId"),
+                request.getHeader("Sud-Timestamp"),
+                request.getHeader("Sud-Nonce"),
+                body,
+                request.getHeader("Sud-Signature"));
     }
 
     /** Makes the consumed body available to Spring without modifying its bytes. */

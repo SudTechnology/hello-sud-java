@@ -1,6 +1,6 @@
 # SudGIP Auth Server Demo
 
-A Java 8 demo server showing how to use **tech.sud.gip:sud-gip-auth-java:1.0.0** to generate Codes, exchange them for SSTokens and user information, and refresh SSTokens. The server uses Spring Boot 2.7.18 and Spring MVC; authentication operations are delegated to the published SDK.
+A Java 8 demo server showing how to use **tech.sud.gip:sud-gip-auth-java:1.1.0** to generate Codes, exchange them for SSTokens and user information, and refresh SSTokens. The server uses Spring Boot 2.7.18 and Spring MVC; authentication operations are delegated to the SDK.
 
 The project targets JDK 8, so it uses Spring Boot 2.7.18. Spring Boot 2.x has reached the end of open-source support. This is a compatibility choice for this demo; plan a supported Java and Spring Boot upgrade before production deployment.
 
@@ -14,7 +14,7 @@ cd hello-sud-java
 mvn verify
 export APP_ID=local-test-app
 export APP_SECRET="$(openssl rand -hex 32)"
-java -jar target/hello-sud-java-1.0.0.jar
+java -jar target/hello-sud-java-1.1.0.jar
 ```
 
 These random credentials are for isolated local testing only. Use issued application credentials for remote integration. In IDEA, run `tech.sud.hello.HelloSudApplication` with `APP_ID` and `APP_SECRET` set in the run configuration.
@@ -31,7 +31,7 @@ The SDK handles Token generation, verification, and UID extraction. Your server 
 <dependency>
   <groupId>tech.sud.gip</groupId>
   <artifactId>sud-gip-auth-java</artifactId>
-  <version>1.0.0</version>
+  <version>1.1.0</version>
 </dependency>
 ```
 
@@ -51,7 +51,7 @@ Inside `AuthService`:
 ```java
 CodeResponse result = auth.getCode(uid);
 if (!result.isSuccess()) {
-    return AuthService.error(400, "Code generation failed", result.getErrorCode());
+    return AuthService.error(200, "", result.getErrorCode());
 }
 return AuthService.success(Collections.singletonMap("code", result.getCode()));
 ```
@@ -65,11 +65,11 @@ After reading the JSON `code` field, verify it before using its UID:
 ```java
 UidResponse user = auth.getUidByCode(code);
 if (!user.isSuccess()) {
-    return AuthService.error(400, "Token verification failed", user.getErrorCode());
+    return AuthService.error(200, "", user.getErrorCode());
 }
 SSTokenResponse token = auth.getSSToken(user.getUid());
 if (!token.isSuccess()) {
-    return AuthService.error(400, "Token generation failed", token.getErrorCode());
+    return AuthService.error(200, "", token.getErrorCode());
 }
 Map<String, Object> data = new LinkedHashMap<>();
 data.put("ss_token", token.getToken());
@@ -95,11 +95,11 @@ The demo adds fixed nickname, avatar, and other profile fields. Replace those fi
 ```java
 UidResponse user = auth.getUidBySSToken(ssToken);
 if (!user.isSuccess()) {
-    return AuthService.error(400, "Token verification failed", user.getErrorCode());
+    return AuthService.error(200, "", user.getErrorCode());
 }
 SSTokenResponse token = auth.getSSToken(user.getUid());
 if (!token.isSuccess()) {
-    return AuthService.error(400, "Token generation failed", token.getErrorCode());
+    return AuthService.error(200, "", token.getErrorCode());
 }
 Map<String, Object> data = new LinkedHashMap<>();
 data.put("ss_token", token.getToken());
@@ -194,9 +194,31 @@ Invalid or missing signatures return the demo's HTTP 403 error envelope with `sd
 This verifies request integrity; it does not implement a timestamp freshness window or nonce replay
 store. These policies are not specified by the supplied signature recipe.
 
+### SDK-backed callback verification
+
+The demo uses `RequestSigner` from SDK **1.1.0**. `SudAuthConfiguration` creates the signer;
+`CallbackSignatureFilter` only captures the original bytes and headers, rejects duplicate headers,
+and calls `verifySignature`. The HMAC algorithm belongs to the SDK.
+
+**Verify the exact original body BEFORE JSON deserialization or any conversion.** Do not sign a
+reconstructed DTO or JSON string. After verification, the filter replays the same bytes for Spring MVC.
+`VERIFY_CALLBACK_SIGNATURE=true` protects `/api/**` except `/api/getCode`; `/health` is also exempt.
+Missing or invalid callback signatures return HTTP 403, `ret_code: 1`, and `sdk_error_code: 0`.
+Outgoing calls to Sud APIs can use the SDK's `generateAuthorization(timestamp, nonce, rawBody)`;
+this is distinct from the incoming callback's four `Sud-*` headers.
+
+An expired Code or SSToken returns **HTTP 200** with this business error envelope:
+
+```json
+{"ret_code":1,"ret_msg":"","sdk_error_code":1005,"data":{}}
+```
+
+Other SDK failures also return HTTP 200 with their SDK error code. Request validation, routing,
+and unexpected server failures retain their respective HTTP error statuses.
+
 ## API Reference
 
-POST requests require `Content-Type: application/json`. Successful responses use HTTP 200; invalid requests and SDK failures use HTTP 400.
+POST requests require `Content-Type: application/json`. Successful responses and SDK business failures use HTTP 200. Always inspect `ret_code` and `sdk_error_code`; HTTP 200 alone does not mean the operation succeeded. Invalid request syntax or missing fields use HTTP 400.
 
 ### getCode
 
@@ -335,9 +357,9 @@ hello-sud-java/
 
 ## Integration Notes
 
-SDK 1.0.0 defaults to a one-hour Code and a two-hour SSToken. Custom duration arguments are **seconds**, for example `auth.getCode(uid, 1800)`. HTTP `expire_date` values are **milliseconds**.
+SDK 1.1.0 defaults to a one-hour Code and a two-hour SSToken. Custom duration arguments are **seconds**, for example `auth.getCode(uid, 1800)`. HTTP `expire_date` values are **milliseconds**.
 
-Use the SDK for both generation and verification. Version 1.0.0 uses its own signature encoding; do not assume its Tokens can be verified by a generic JWT library. Code and SSToken share a format, and the SDK does not compare the embedded application ID with the configured one. Your service must enforce the required user and application authorization rules.
+Use the SDK for both generation and verification. Version 1.1.0 retains its own signature encoding; do not assume its Tokens can be verified by a generic JWT library. Code and SSToken share a format, and the SDK does not compare the embedded application ID with the configured one. Your service must enforce the required user and application authorization rules.
 
 This demo has no login system, persistence, revocation store, or production rate limiting. Local tests validate SDK integration within this server; they do not replace remote-service testing with issued credentials.
 
@@ -346,4 +368,4 @@ This demo has no login system, persistence, revocation store, or production rate
 - [Spring Boot 2.7.18 Java requirements](https://docs.spring.io/spring-boot/docs/2.7.18/reference/html/getting-started.html#getting-started.system-requirements)
 - [Spring Boot 2.x support status](https://spring.io/blog/2023/11/23/spring-boot-2-7-18-available-now/)
 - SDK: https://github.com/SudTechnology/sud-gip-auth-java
-- Maven coordinates: `tech.sud.gip:sud-gip-auth-java:1.0.0`
+- Maven coordinates: `tech.sud.gip:sud-gip-auth-java:1.1.0`

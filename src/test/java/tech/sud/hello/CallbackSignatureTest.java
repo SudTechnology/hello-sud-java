@@ -37,8 +37,14 @@ class CallbackSignatureTest {
     void validSignatureReachesSdkAndAllowsFutureFields() throws Exception {
         // The callback signature is valid, but the dummy token must still fail SDK verification.
         mvc.perform(signed(BODY))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sdk_error_code").value(1004));
+    }
+
+    @Test
+    void duplicateHeadersAreRejected() throws Exception {
+        mvc.perform(signed(BODY).header("Sud-Nonce", "another-nonce"))
+                .andExpect(status().isForbidden());
     }
 
     @Test
@@ -113,7 +119,7 @@ class CallbackSignatureTest {
                                 .header(
                                         "Sud-Signature",
                                         "b4d9275485655db2a69bbcbf0b816e9050908d54"))
-                .andExpect(status().isBadRequest())
+                .andExpect(status().isOk())
                 .andExpect(jsonPath("$.sdk_error_code").value(1004));
         // Same JSON values after newline normalization MUST fail with the original signature.
         mvc.perform(
@@ -129,5 +135,72 @@ class CallbackSignatureTest {
                                         "Sud-Signature",
                                         "b4d9275485655db2a69bbcbf0b816e9050908d54"))
                 .andExpect(status().isForbidden());
+    }
+
+    /** Exercise the SDK signer and token APIs together with the callback filter enabled. */
+    @Test
+    void signedFlowAndExpiredTokens() throws Exception {
+        String secret = "0123456789abcdef0123456789abcdef";
+        tech.sud.auth.gip.auth.SudGIPAuth auth =
+                new tech.sud.auth.gip.auth.SudGIPAuth("test-app", secret);
+        com.fasterxml.jackson.databind.ObjectMapper json =
+                new com.fasterxml.jackson.databind.ObjectMapper();
+        String body =
+                json.writeValueAsString(
+                        java.util.Collections.singletonMap(
+                                "code", auth.getCode("signed-user").getCode()));
+        String response =
+                mvc.perform(signedRequest("/api/getSSToken", body))
+                        .andExpect(status().isOk())
+                        .andExpect(jsonPath("$.ret_code").value(0))
+                        .andExpect(jsonPath("$.data.user_info.uid").value("signed-user"))
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString();
+        String token = json.readTree(response).path("data").path("ss_token").asText();
+        mvc.perform(
+                        signedRequest(
+                                "/api/updateSSToken",
+                                json.writeValueAsString(
+                                        java.util.Collections.singletonMap("ss_token", token))))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.ret_code").value(0));
+
+        String expiredCode = auth.getCode("signed-user", 1).getCode();
+        String expiredToken = auth.getSSToken("signed-user", 1).getToken();
+        Thread.sleep(2100);
+        for (String[] entry :
+                new String[][] {
+                    {"/api/getSSToken", "code", expiredCode},
+                    {"/api/updateSSToken", "ss_token", expiredToken}
+                }) {
+            mvc.perform(
+                            signedRequest(
+                                    entry[0],
+                                    json.writeValueAsString(
+                                            java.util.Collections.singletonMap(
+                                                    entry[1], entry[2]))))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.ret_code").value(1))
+                    .andExpect(jsonPath("$.ret_msg").value(""))
+                    .andExpect(jsonPath("$.sdk_error_code").value(1005))
+                    .andExpect(jsonPath("$.data").isMap());
+        }
+    }
+
+    private MockHttpServletRequestBuilder signedRequest(String path, String body) {
+        byte[] bytes = body.getBytes(java.nio.charset.StandardCharsets.UTF_8);
+        tech.sud.auth.gip.auth.RequestSigner signer =
+                new tech.sud.auth.gip.auth.RequestSigner(
+                        "test-app", "0123456789abcdef0123456789abcdef");
+        return post(path)
+                .contentType("application/json")
+                .content(bytes)
+                .header("Sud-AppId", "test-app")
+                .header("Sud-Timestamp", "1234567890")
+                .header("Sud-Nonce", "nonce-001")
+                .header(
+                        "Sud-Signature",
+                        signer.generateSignature("1234567890", "nonce-001", bytes));
     }
 }

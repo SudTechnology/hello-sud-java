@@ -125,7 +125,7 @@ class DemoServerTest {
                 new String[][] {{"getSSToken", "code"}, {"updateSSToken", "ss_token"}}) {
             Response r =
                     request("POST", "/api/" + pair[0], "{\"" + pair[1] + "\":\"invalid-token\"}");
-            assertEquals(400, r.statusCode());
+            assertEquals(200, r.statusCode());
             assertEquals(1004, JSON.readTree(r.body()).path("sdk_error_code").asInt());
         }
     }
@@ -140,7 +140,7 @@ class DemoServerTest {
     @Test
     void invalidJson() throws Exception {
         for (String body : new String[] {"{", "[]", "{\"code\":1}", "{} {}"}) {
-            assertEquals(400, request("POST", "/api/getSSToken", body).statusCode());
+            assertEquals(400, request("POST", "/api/getSSToken", body).statusCode(), body);
         }
     }
 
@@ -170,7 +170,9 @@ class DemoServerTest {
                         "POST",
                         "/api/getSSToken",
                         JSON.writeValueAsString(Collections.singletonMap("code", code)));
-        assertEquals(400, result.statusCode());
+        assertEquals(200, result.statusCode());
+        assertEquals(1, JSON.readTree(result.body()).path("ret_code").asInt());
+        assertEquals("", JSON.readTree(result.body()).path("ret_msg").asText());
         assertEquals(1005, JSON.readTree(result.body()).path("sdk_error_code").asInt());
     }
 
@@ -179,7 +181,7 @@ class DemoServerTest {
         String code =
                 new SudGIPAuth("test-app", "different-key-for-testing-only").getCode("u").getCode();
         assertEquals(
-                400,
+                200,
                 request(
                                 "POST",
                                 "/api/getSSToken",

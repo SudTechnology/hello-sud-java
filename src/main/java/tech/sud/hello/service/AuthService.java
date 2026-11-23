@@ -57,10 +57,11 @@ public final class AuthService {
     public static Reply error(int status, String message, int sdkCode) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("ret_code", 1);
-        body.put("ret_msg", message);
+        body.put("ret_msg", sdkCode == 0 ? message : "");
         body.put("sdk_error_code", sdkCode);
         body.put("data", Collections.emptyMap());
-        return new Reply(status, body);
+        // SDK business failures use HTTP 200; callers must inspect the response envelope.
+        return new Reply(sdkCode == 0 ? status : 200, body);
     }
 
     private static boolean missing(String value) {
@@ -76,7 +77,7 @@ public final class AuthService {
         // Generation can fail too: inspect the response before reading its token.
         CodeResponse result = auth.getCode(uid);
         if (!result.isSuccess()) {
-            return error(400, "Code generation failed", result.getErrorCode());
+            return error(200, "", result.getErrorCode());
         }
         return success(Collections.singletonMap("code", result.getCode()));
     }
@@ -90,15 +91,15 @@ public final class AuthService {
         // Never trust a UID decoded from an unverified token.
         UidResponse user = auth.getUidByCode(code);
         if (!user.isSuccess()) {
-            return error(400, "Token verification failed", user.getErrorCode());
+            return error(200, "", user.getErrorCode());
         }
         if (missing(user.getUid())) {
-            return error(400, "Missing token uid", 1004);
+            return error(200, "", 1004);
         }
 
         SSTokenResponse token = auth.getSSToken(user.getUid());
         if (!token.isSuccess()) {
-            return error(400, "Token generation failed", token.getErrorCode());
+            return error(200, "", token.getErrorCode());
         }
 
         // Replace these fixed values with a lookup in your own user service.
@@ -123,16 +124,16 @@ public final class AuthService {
 
         UidResponse user = auth.getUidBySSToken(ssToken);
         if (!user.isSuccess()) {
-            return error(400, "Token verification failed", user.getErrorCode());
+            return error(200, "", user.getErrorCode());
         }
         if (missing(user.getUid())) {
-            return error(400, "Missing token uid", 1004);
+            return error(200, "", 1004);
         }
 
         // Issuing a new token does not revoke the previous one.
         SSTokenResponse token = auth.getSSToken(user.getUid());
         if (!token.isSuccess()) {
-            return error(400, "Token generation failed", token.getErrorCode());
+            return error(200, "", token.getErrorCode());
         }
         return success(tokenData(token));
     }
